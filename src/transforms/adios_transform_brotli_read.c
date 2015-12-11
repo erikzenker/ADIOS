@@ -3,15 +3,17 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include <brotli_c.h>
+
 #include "util.h"
 #include "adios_transforms_hooks_read.h"
 #include "adios_transforms_reqgroup.h"
 
-#ifdef TEMPLATE
+#ifdef BROTLI
 
-int adios_transform_template_is_implemented (void) {return 1;}
+int adios_transform_brotli_is_implemented (void) {return 1;}
 
-int adios_transform_template_generate_read_subrequests(adios_transform_read_request *reqgroup,
+int adios_transform_brotli_generate_read_subrequests(adios_transform_read_request *reqgroup,
                                                        adios_transform_pg_read_request *pg_reqgroup)
 {
     void *buf = malloc(pg_reqgroup->raw_var_length);
@@ -21,7 +23,7 @@ int adios_transform_template_generate_read_subrequests(adios_transform_read_requ
 }
 
 // Do nothing for individual subrequest
-adios_datablock * adios_transform_template_subrequest_completed(adios_transform_read_request *reqgroup,
+adios_datablock * adios_transform_brotli_subrequest_completed(adios_transform_read_request *reqgroup,
                                                                 adios_transform_pg_read_request *pg_reqgroup,
                                                                 adios_transform_raw_read_request *completed_subreq)
 {
@@ -30,7 +32,7 @@ adios_datablock * adios_transform_template_subrequest_completed(adios_transform_
 
 
 
-adios_datablock * adios_transform_template_pg_reqgroup_completed(adios_transform_read_request *reqgroup,
+adios_datablock * adios_transform_brotli_pg_reqgroup_completed(adios_transform_read_request *reqgroup,
                                                                  adios_transform_pg_read_request *completed_pg_reqgroup)
 {
     uint64_t raw_size = (uint64_t)completed_pg_reqgroup->raw_var_length;
@@ -44,13 +46,21 @@ adios_datablock * adios_transform_template_pg_reqgroup_completed(adios_transform
     void* orig_buff = malloc(orig_size);
 
     // Decompress into orig_buff
-    int result = brotli_decompress_buffer();
+    int result = brotli_decompress_buffer(raw_size,
+					  (uint8_t) raw_buff,
+					  orig_size,
+					  (uint8_t) orig_buff);
+
+    if(result == 0){
+	// Do error handling here
+	
+    }
 
     return adios_datablock_new_whole_pg(reqgroup, completed_pg_reqgroup, orig_buff);
 }
 
 // Do nothing for the full read request complete (typical)
-adios_datablock * adios_transform_template_reqgroup_completed(adios_transform_read_request *completed_reqgroup)
+adios_datablock * adios_transform_brotli_reqgroup_completed(adios_transform_read_request *completed_reqgroup)
 {
     return NULL;
 }
@@ -58,7 +68,7 @@ adios_datablock * adios_transform_template_reqgroup_completed(adios_transform_re
 
 #else
 
-DECLARE_TRANSFORM_READ_METHOD_UNIMPL(zlib);
+DECLARE_TRANSFORM_READ_METHOD_UNIMPL(brotli);
 
 #endif
 
